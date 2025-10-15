@@ -1,5 +1,6 @@
 import sys
 import os
+from PyPDF2 import PdfReader, PdfWriter
 
 def get_pdf_paths(input_path):
     """Returns a list of PDF file paths from the given input path."""
@@ -18,14 +19,39 @@ def get_pdf_paths(input_path):
         print("Input must be a PDF file or a folder containing PDF files.")
         sys.exit(1)
 
+def split_pdf_files(pdf_paths, pages_per_split):
+    """Splits each PDF in pdf_paths into parts with pages_per_split pages."""
+    for pdf_path in pdf_paths:
+        reader = PdfReader(pdf_path)
+        total_pages = len(reader.pages)
+        base_name = os.path.splitext(os.path.basename(pdf_path))[0]
+        output_dir = os.path.dirname(pdf_path)
+        part = 1
+        for start in range(0, total_pages, pages_per_split):
+            writer = PdfWriter()
+            end = min(start + pages_per_split, total_pages)
+            for i in range(start, end):
+                writer.add_page(reader.pages[i])
+            output_path = os.path.join(
+                output_dir, f"{base_name} - Part {part}.pdf"
+            )
+            with open(output_path, "wb") as out_file:
+                writer.write(out_file)
+            part += 1
+
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: python Splitter.py <PDF file or folder>")
+    if len(sys.argv) != 3:
+        print("Usage: python Splitter.py <PDF file or folder> <pages per split>")
         sys.exit(1)
+        
+    # Get input path and pages per split
     input_path = sys.argv[1]
+    pages_per_split = int(sys.argv[2])
+
+    # Get PDF paths
     pdf_paths = get_pdf_paths(input_path)
-    print("PDF files to process:")
-    for pdf in pdf_paths:
-        print(pdf)
-        
-        
+    
+    # Split PDF files
+    split_pdf_files(pdf_paths, pages_per_split=pages_per_split)
+    
+    print("PDF splitting completed.")
