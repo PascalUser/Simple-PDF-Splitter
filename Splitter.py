@@ -19,39 +19,48 @@ def get_pdf_paths(input_path):
         print("Input must be a PDF file or a folder containing PDF files.")
         sys.exit(1)
 
-def split_pdf_files(pdf_paths, pages_per_split):
+def split_pdf_files(pdf_paths, pages_per_split, use_folders=False):
     """Splits each PDF in pdf_paths into parts with pages_per_split pages."""
     for pdf_path in pdf_paths:
         reader = PdfReader(pdf_path)
         total_pages = len(reader.pages)
         base_name = os.path.splitext(os.path.basename(pdf_path))[0]
-        output_dir = os.path.dirname(pdf_path)
+        base_dir = os.path.dirname(pdf_path)
+
+        # Create a folder for splits if the flag is enabled
+        if use_folders:
+            output_dir = os.path.join(base_dir, f"{base_name} - Splitted")
+            os.makedirs(output_dir, exist_ok=True)
+        else:
+            output_dir = base_dir
+
         part = 1
         for start in range(0, total_pages, pages_per_split):
             writer = PdfWriter()
             end = min(start + pages_per_split, total_pages)
             for i in range(start, end):
                 writer.add_page(reader.pages[i])
-            output_path = os.path.join(
-                output_dir, f"{base_name} - Part {part}.pdf"
-            )
+            output_path = os.path.join(output_dir, f"{base_name} - Part {part}.pdf")
             with open(output_path, "wb") as out_file:
                 writer.write(out_file)
             part += 1
 
+        print(f"{base_name} split into {part - 1} parts. Saved in: {output_dir}")
+
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        print("Usage: python Splitter.py <PDF file or folder> <pages per split>")
+    if len(sys.argv) < 3 or len(sys.argv) > 4:
+        print("Usage: python Splitter.py <PDF file or folder> <pages per split> [--use-folders]")
         sys.exit(1)
         
     # Get input path and pages per split
     input_path = sys.argv[1]
     pages_per_split = int(sys.argv[2])
+    use_folders = len(sys.argv) == 4 and sys.argv[3] == "--use-folders"
 
     # Get PDF paths
     pdf_paths = get_pdf_paths(input_path)
     
     # Split PDF files
-    split_pdf_files(pdf_paths, pages_per_split=pages_per_split)
+    split_pdf_files(pdf_paths, pages_per_split, use_folders)
     
     print("PDF splitting completed.")
